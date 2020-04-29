@@ -19,6 +19,7 @@
  *
  * ============================================================================
 */
+
 #include <sourcemod>
 #include <sdktools>
 
@@ -26,16 +27,16 @@
 #pragma newdecls required
 
 Address g_pPatchAddress = Address_Null;
-int g_patchRestore[100];
-int g_patchBytes;
+int g_iPatchRestore[100];
+int g_iPatchBytes;
 
 public Plugin myinfo =
 {
 	name        = "GameUI Fix",
 	author      = "quasemago",
-	description = "Prevent game_ui from disabling movement prediction so it doesn't lag.",
+	description = "Prevent game_ui from disabling movement prediction.",
 	version     = "1.0.0",
-	url         = "#"
+	url         = "https://github.com/quasemago"
 };
 
 public void OnPluginStart()
@@ -55,32 +56,32 @@ public void OnPluginStart()
 		return;
 	}
 
-	g_patchBytes = GameConfGetOffset(gameConf, "PatchBytes");
-	if (g_patchBytes == -1)
+	g_iPatchBytes = GameConfGetOffset(gameConf, "PatchBytes");
+	if (g_iPatchBytes == -1)
 	{
 		SetFailState("Could not get 'PatchBytes' offset!");
 		return;
 	}
 
 	// Get function address.
-	Address pAddy = GameConfGetAddress(gameConf, "GameUI_Think");
-	if (pAddy == Address_Null)
+	Address pFunction = GameConfGetAddress(gameConf, "GameUI_Think");
+	if (pFunction == Address_Null)
 	{
 		SetFailState("Could not get 'CGameUI::Think' address!");
 		return;
 	}
 
+	delete gameConf;
+
 	// Patch function.
-	Address pPatch = pAddy + view_as<Address>(patchOffset);
+	Address pPatch = pFunction + view_as<Address>(patchOffset);
 	g_pPatchAddress = pPatch;
 
-	for (int i = 0; i < g_patchBytes; i++)
+	for (int i = 0; i < g_iPatchBytes; i++)
 	{
-		g_patchRestore[i] = LoadFromAddress(pPatch + view_as<Address>(i), NumberType_Int8);
+		g_iPatchRestore[i] = LoadFromAddress(pPatch + view_as<Address>(i), NumberType_Int8);
 		StoreToAddress(pPatch + view_as<Address>(i), 0x90, NumberType_Int8);
 	}
-
-	delete gameConf;
 }
 
 public void OnPluginEnd()
@@ -88,9 +89,9 @@ public void OnPluginEnd()
 	// Restore original function.
 	if (g_pPatchAddress != Address_Null)
 	{
-		for (int i = 0; i < g_patchBytes; i++)
+		for (int i = 0; i < g_iPatchBytes; i++)
 		{
-			StoreToAddress(g_pPatchAddress + view_as<Address>(i), g_patchRestore[i], NumberType_Int8);
+			StoreToAddress(g_pPatchAddress + view_as<Address>(i), g_iPatchRestore[i], NumberType_Int8);
 		}
 	}
 }
